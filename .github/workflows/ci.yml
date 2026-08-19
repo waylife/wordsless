@@ -1,0 +1,50 @@
+name: CI
+
+# Triggers: PR + push to main. Does NOT build the app — that is left to
+# EAS via the release.yml workflow on tag push. See plans/PLAN.md §7.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Cancel an in-flight run for the same branch / PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Lint · Typecheck · Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run-install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test --ci --coverage=false
+        env:
+          # Force jest to exit instead of watch for hanging processes.
+          CI: true

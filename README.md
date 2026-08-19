@@ -1,56 +1,64 @@
-# Welcome to your Expo app 👋
+# Wordsless
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+> A local-first, offline-capable vocabulary trainer. Expo + React Native,
+> no backend. See [`plans/PLAN.md`](./plans/PLAN.md) for the full roadmap.
 
-## Get started
+## Status
 
-1. Install dependencies
+**Phase 0 — Engineering scaffold.** UI is just four placeholder tabs
+(今日 / 复习 / 统计 / 设置) with shared Button / Card / ProgressRing
+primitives. The MVP learning loop lands in Phase 3.
 
-   ```bash
-   npm install
-   ```
+## Stack
 
-2. Start the app
+| Area          | Pick                                       |
+| ------------- | ------------------------------------------ |
+| Framework     | Expo SDK 57 (RN 0.86, React 19)            |
+| Router        | expo-router (file-based)                   |
+| State         | Zustand (planned)                          |
+| DB            | expo-sqlite + Drizzle ORM (Phase 1)        |
+| Tests         | Jest 29 + jest-expo + @testing-library/rn  |
+| Lint / Format | ESLint (flat config) + Prettier + husky    |
+| AI            | MiniMax (OpenAI-compatible) — Phase 3      |
+| CI            | GitHub Actions (this repo) + EAS for build |
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Quick start
 
 ```bash
-npm run reset-project
+pnpm install
+pnpm start            # Expo dev server
+pnpm test             # Jest
+pnpm lint             # ESLint
+pnpm typecheck        # tsc --noEmit
+pnpm format           # Prettier write
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Directory layout
 
-### Other setup steps
+```
+wordsless/
+├─ app/                  # expo-router entry
+├─ src/
+│  ├─ app/               # screens (file routes)
+│  ├─ components/        # shared UI: Button, Card, ProgressRing …
+│  ├─ constants/         # design tokens (Colors, Spacing, Radii, …)
+│  ├─ hooks/             # useColorScheme, useThemeColor …
+│  └─ __tests__/         # cross-cutting unit tests
+├─ plans/                # living product & engineering plan
+└─ .github/workflows/    # CI (lint + typecheck + test)
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+The directory under `src/app/` (not the project root `app/`) is the
+Expo SDK 57 default; we kept it for the cleaner separation.
 
-## Learn more
+## Development workflow
 
-To learn more about developing your project with Expo, look at the following resources:
+1. Branch from `main`.
+2. `pnpm install` (husky will wire the pre-commit hook on first run).
+3. Pre-commit runs `lint-staged` (ESLint --fix + Prettier on staged files).
+4. Open a PR — CI must pass before merge.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Roadmap
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+See [`plans/PLAN.md`](./plans/PLAN.md) for the full Phase 0–7 plan and
+the feature backlog (P0 → P1 → P2).
