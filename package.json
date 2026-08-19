@@ -66,6 +66,7 @@
     "test:watch": "jest --watch",
     "data:build": "tsx data/build-words.ts",
     "data:build:all": "tsx data/build-words.ts --all",
+    "data:ai": "tsx data/gen-ai-content.ts",
     "prepare": "husky"
   },
   "lint-staged": {
