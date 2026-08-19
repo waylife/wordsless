@@ -49,6 +49,7 @@
     "jest-expo": "^57.0.4",
     "lint-staged": "^17.3.0",
     "prettier": "^3.9.6",
+    "tsx": "^4.23.12",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -63,6 +64,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
+    "data:build": "tsx data/build-words.ts",
+    "data:build:all": "tsx data/build-words.ts --all",
     "prepare": "husky"
   },
   "lint-staged": {

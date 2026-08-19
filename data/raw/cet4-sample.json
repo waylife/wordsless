@@ -1,0 +1,302 @@
+[
+  {
+    "spelling": "abandon",
+    "phonetic_uk": "/əˈbændən/",
+    "phonetic_us": "/əˈbændən/",
+    "meanings": [{ "pos": "v.", "def": "放弃;遗弃" }]
+  },
+  {
+    "spelling": "ability",
+    "phonetic_uk": "/əˈbɪləti/",
+    "phonetic_us": "/əˈbɪləti/",
+    "meanings": [{ "pos": "n.", "def": "能力;才能" }]
+  },
+  {
+    "spelling": "absent",
+    "phonetic_uk": "/ˈæbsənt/",
+    "phonetic_us": "/ˈæbsənt/",
+    "meanings": [{ "pos": "adj.", "def": "缺席的;不在的" }]
+  },
+  {
+    "spelling": "absolute",
+    "phonetic_uk": "/ˈæbsəluːt/",
+    "phonetic_us": "/ˈæbsəluːt/",
+    "meanings": [{ "pos": "adj.", "def": "绝对的;完全的" }]
+  },
+  {
+    "spelling": "absorb",
+    "phonetic_uk": "/əbˈzɔːb/",
+    "phonetic_us": "/əbˈsɔːrb/",
+    "meanings": [{ "pos": "v.", "def": "吸收;吸引" }]
+  },
+  {
+    "spelling": "academic",
+    "phonetic_uk": "/ˌækəˈdemɪk/",
+    "phonetic_us": "/ˌækəˈdemɪk/",
+    "meanings": [{ "pos": "adj.", "def": "学术的;学院的" }]
+  },
+  {
+    "spelling": "accept",
+    "phonetic_uk": "/əkˈsept/",
+    "phonetic_us": "/əkˈsept/",
+    "meanings": [{ "pos": "v.", "def": "接受;同意" }]
+  },
+  {
+    "spelling": "access",
+    "phonetic_uk": "/ˈækses/",
+    "phonetic_us": "/ˈækses/",
+    "meanings": [{ "pos": "n.", "def": "通道;接近的机会" }]
+  },
+  {
+    "spelling": "accident",
+    "phonetic_uk": "/ˈæksɪdənt/",
+    "phonetic_us": "/ˈæksɪdənt/",
+    "meanings": [{ "pos": "n.", "def": "事故;意外的事" }]
+  },
+  {
+    "spelling": "accompany",
+    "phonetic_uk": "/əˈkʌmpəni/",
+    "phonetic_us": "/əˈkʌmpəni/",
+    "meanings": [{ "pos": "v.", "def": "陪伴;伴随" }]
+  },
+  {
+    "spelling": "accomplish",
+    "phonetic_uk": "/əˈkʌmplɪʃ/",
+    "phonetic_us": "/əˈkɑːmplɪʃ/",
+    "meanings": [{ "pos": "v.", "def": "完成;实现" }]
+  },
+  {
+    "spelling": "account",
+    "phonetic_uk": "/əˈkaʊnt/",
+    "phonetic_us": "/əˈkaʊnt/",
+    "meanings": [{ "pos": "n.", "def": "账户;描述" }]
+  },
+  {
+    "spelling": "accurate",
+    "phonetic_uk": "/ˈækjərət/",
+    "phonetic_us": "/ˈækjərət/",
+    "meanings": [{ "pos": "adj.", "def": "精确的;准确的" }]
+  },
+  {
+    "spelling": "achieve",
+    "phonetic_uk": "/əˈtʃiːv/",
+    "phonetic_us": "/əˈtʃiːv/",
+    "meanings": [{ "pos": "v.", "def": "取得;实现" }]
+  },
+  {
+    "spelling": "acknowledge",
+    "phonetic_uk": "/əkˈnɒlɪdʒ/",
+    "phonetic_us": "/əkˈnɑːlɪdʒ/",
+    "meanings": [{ "pos": "v.", "def": "承认;答谢" }]
+  },
+  {
+    "spelling": "acquire",
+    "phonetic_uk": "/əˈkwaɪə/",
+    "phonetic_us": "/əˈkwaɪər/",
+    "meanings": [{ "pos": "v.", "def": "获得;习得" }]
+  },
+  {
+    "spelling": "adapt",
+    "phonetic_uk": "/əˈdæpt/",
+    "phonetic_us": "/əˈdæpt/",
+    "meanings": [{ "pos": "v.", "def": "适应;改编" }]
+  },
+  {
+    "spelling": "adjust",
+    "phonetic_uk": "/əˈdʒʌst/",
+    "phonetic_us": "/əˈdʒʌst/",
+    "meanings": [{ "pos": "v.", "def": "调整;调节" }]
+  },
+  {
+    "spelling": "admire",
+    "phonetic_uk": "/ədˈmaɪə/",
+    "phonetic_us": "/ədˈmaɪər/",
+    "meanings": [{ "pos": "v.", "def": "钦佩;欣赏" }]
+  },
+  {
+    "spelling": "admit",
+    "phonetic_uk": "/ədˈmɪt/",
+    "phonetic_us": "/ədˈmɪt/",
+    "meanings": [{ "pos": "v.", "def": "承认;接纳" }]
+  },
+  {
+    "spelling": "adopt",
+    "phonetic_uk": "/əˈdɒpt/",
+    "phonetic_us": "/əˈdɑːpt/",
+    "meanings": [{ "pos": "v.", "def": "采用;收养" }]
+  },
+  {
+    "spelling": "advance",
+    "phonetic_uk": "/ədˈvɑːns/",
+    "phonetic_us": "/ədˈvæns/",
+    "meanings": [{ "pos": "v.", "def": "前进;推进" }]
+  },
+  {
+    "spelling": "advantage",
+    "phonetic_uk": "/ədˈvɑːntɪdʒ/",
+    "phonetic_us": "/ədˈvæntɪdʒ/",
+    "meanings": [{ "pos": "n.", "def": "优势;有利条件" }]
+  },
+  {
+    "spelling": "adventure",
+    "phonetic_uk": "/ədˈventʃə/",
+    "phonetic_us": "/ədˈventʃər/",
+    "meanings": [{ "pos": "n.", "def": "冒险;奇遇" }]
+  },
+  {
+    "spelling": "advertise",
+    "phonetic_uk": "/ˈædvətaɪz/",
+    "phonetic_us": "/ˈædvərtaɪz/",
+    "meanings": [{ "pos": "v.", "def": "做广告;宣传" }]
+  },
+  {
+    "spelling": "affect",
+    "phonetic_uk": "/əˈfekt/",
+    "phonetic_us": "/əˈfekt/",
+    "meanings": [{ "pos": "v.", "def": "影响" }]
+  },
+  {
+    "spelling": "afford",
+    "phonetic_uk": "/əˈfɔːd/",
+    "phonetic_us": "/əˈfɔːrd/",
+    "meanings": [{ "pos": "v.", "def": "买得起;负担得起" }]
+  },
+  {
+    "spelling": "afraid",
+    "phonetic_uk": "/əˈfreɪd/",
+    "phonetic_us": "/əˈfreɪd/",
+    "meanings": [{ "pos": "adj.", "def": "害怕的;担心的" }]
+  },
+  {
+    "spelling": "against",
+    "phonetic_uk": "/əˈɡenst/",
+    "phonetic_us": "/əˈɡenst/",
+    "meanings": [{ "pos": "prep.", "def": "反对;逆;靠着" }]
+  },
+  {
+    "spelling": "agency",
+    "phonetic_uk": "/ˈeɪdʒənsi/",
+    "phonetic_us": "/ˈeɪdʒənsi/",
+    "meanings": [{ "pos": "n.", "def": "代理;机构" }]
+  },
+  {
+    "spelling": "agree",
+    "phonetic_uk": "/əˈɡriː/",
+    "phonetic_us": "/əˈɡriː/",
+    "meanings": [{ "pos": "v.", "def": "同意;赞成" }]
+  },
+  {
+    "spelling": "ahead",
+    "phonetic_uk": "/əˈhed/",
+    "phonetic_us": "/əˈhed/",
+    "meanings": [{ "pos": "adv.", "def": "在前;向前" }]
+  },
+  {
+    "spelling": "aim",
+    "phonetic_uk": "/eɪm/",
+    "phonetic_us": "/eɪm/",
+    "meanings": [{ "pos": "n./v.", "def": "目标;打算" }]
+  },
+  {
+    "spelling": "alarm",
+    "phonetic_uk": "/əˈlɑːm/",
+    "phonetic_us": "/əˈlɑːrm/",
+    "meanings": [{ "pos": "n.", "def": "警报;惊恐" }]
+  },
+  {
+    "spelling": "alike",
+    "phonetic_uk": "/əˈlaɪk/",
+    "phonetic_us": "/əˈlaɪk/",
+    "meanings": [{ "pos": "adj./adv.", "def": "相似的(地)" }]
+  },
+  {
+    "spelling": "allow",
+    "phonetic_uk": "/əˈlaʊ/",
+    "phonetic_us": "/əˈlaʊ/",
+    "meanings": [{ "pos": "v.", "def": "允许;准许" }]
+  },
+  {
+    "spelling": "almost",
+    "phonetic_uk": "/ˈɔːlməʊst/",
+    "phonetic_us": "/ˈɔːlmoʊst/",
+    "meanings": [{ "pos": "adv.", "def": "几乎;差不多" }]
+  },
+  {
+    "spelling": "alone",
+    "phonetic_uk": "/əˈləʊn/",
+    "phonetic_us": "/əˈloʊn/",
+    "meanings": [{ "pos": "adj./adv.", "def": "单独的(地)" }]
+  },
+  {
+    "spelling": "along",
+    "phonetic_uk": "/əˈlɒŋ/",
+    "phonetic_us": "/əˈlɔːŋ/",
+    "meanings": [{ "pos": "prep./adv.", "def": "沿着;向前" }]
+  },
+  {
+    "spelling": "already",
+    "phonetic_uk": "/ɔːlˈredi/",
+    "phonetic_us": "/ɔːlˈredi/",
+    "meanings": [{ "pos": "adv.", "def": "已经" }]
+  },
+  {
+    "spelling": "also",
+    "phonetic_uk": "/ˈɔːlsəʊ/",
+    "phonetic_us": "/ˈɔːlsoʊ/",
+    "meanings": [{ "pos": "adv.", "def": "也;同样" }]
+  },
+  {
+    "spelling": "although",
+    "phonetic_uk": "/ɔːlˈðəʊ/",
+    "phonetic_us": "/ɔːlˈðoʊ/",
+    "meanings": [{ "pos": "conj.", "def": "虽然;尽管" }]
+  },
+  {
+    "spelling": "always",
+    "phonetic_uk": "/ˈɔːlweɪz/",
+    "phonetic_us": "/ˈɔːlweɪz/",
+    "meanings": [{ "pos": "adv.", "def": "总是;一直" }]
+  },
+  {
+    "spelling": "amaze",
+    "phonetic_uk": "/əˈmeɪz/",
+    "phonetic_us": "/əˈmeɪz/",
+    "meanings": [{ "pos": "v.", "def": "使惊奇" }]
+  },
+  {
+    "spelling": "among",
+    "phonetic_uk": "/əˈmʌŋ/",
+    "phonetic_us": "/əˈmʌŋ/",
+    "meanings": [{ "pos": "prep.", "def": "在…之中" }]
+  },
+  {
+    "spelling": "ancient",
+    "phonetic_uk": "/ˈeɪnʃənt/",
+    "phonetic_us": "/ˈeɪnʃənt/",
+    "meanings": [{ "pos": "adj.", "def": "古代的;古老的" }]
+  },
+  {
+    "spelling": "anger",
+    "phonetic_uk": "/ˈæŋɡə/",
+    "phonetic_us": "/ˈæŋɡər/",
+    "meanings": [{ "pos": "n.", "def": "愤怒" }]
+  },
+  {
+    "spelling": "announce",
+    "phonetic_uk": "/əˈnaʊns/",
+    "phonetic_us": "/əˈnaʊns/",
+    "meanings": [{ "pos": "v.", "def": "宣布;宣告" }]
+  },
+  {
+    "spelling": "anxiety",
+    "phonetic_uk": "/æŋˈzaɪəti/",
+    "phonetic_us": "/æŋˈzaɪəti/",
+    "meanings": [{ "pos": "n.", "def": "焦虑;忧虑" }]
+  },
+  {
+    "spelling": "apologize",
+    "phonetic_uk": "/əˈpɒlədʒaɪz/",
+    "phonetic_us": "/əˈpɑːlədʒaɪz/",
+    "meanings": [{ "pos": "v.", "def": "道歉" }]
+  }
+]
