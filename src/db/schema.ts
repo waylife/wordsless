@@ -206,6 +206,27 @@ export const checkins = sqliteTable('checkins', {
   studySeconds: integer('study_seconds').notNull().default(0),
 });
 
+/**
+ * Settings — a small key/value store for non-sensitive app preferences
+ * (accent, daily new-word quota, theme override, …). Each row holds a
+ * JSON-serialized value; we keep the schema generic so new keys don't
+ * require a migration.
+ *
+ * Sensitive material (e.g. the user's MiniMax API key) does NOT live
+ * here — it goes to `expo-secure-store` instead.
+ */
+export const settings = sqliteTable('settings', {
+  key: text('key').primaryKey(),
+  /** JSON-encoded value; decode on read. */
+  value: text('value').notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+export type SettingsRow = typeof settings.$inferSelect;
+export type NewSettingsRow = typeof settings.$inferInsert;
+
 // ---------- inferred row types ----------
 
 export type Wordbook = typeof wordbooks.$inferSelect;

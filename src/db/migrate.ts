@@ -109,6 +109,30 @@ const MIGRATIONS: Migration[] = [
       }
     },
   },
+  {
+    version: 2,
+    async up(db) {
+      // Phase 2/3: settings key/value table for non-sensitive prefs.
+      const client = (db as unknown as { $client?: unknown }).$client as
+        | {
+            execAsync?: (sql: string) => Promise<unknown>;
+            exec: (sql: string) => unknown;
+          }
+        | undefined;
+      const ddl = `
+        CREATE TABLE IF NOT EXISTS settings (
+          key TEXT PRIMARY KEY NOT NULL,
+          value TEXT NOT NULL,
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+      `;
+      if (client && typeof client.execAsync === 'function') {
+        await client.execAsync(ddl);
+      } else {
+        (client ?? (db as unknown as { exec: (sql: string) => unknown })).exec(ddl);
+      }
+    },
+  },
 ];
 
 /**

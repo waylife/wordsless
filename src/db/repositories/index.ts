@@ -10,3 +10,4 @@ export { reviewLogRepository } from './review-log';
 export { aiContentRepository } from './ai-content';
 export { favoritesRepository } from './favorites';
 export { checkinRepository } from './checkins';
+export { settingsRepository } from './settings';

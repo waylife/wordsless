@@ -15,7 +15,7 @@ describe('runMigrations', () => {
         handle.db as unknown as Parameters<typeof runMigrations>[0],
       );
       expect(result.applied).toBe(0);
-      expect(result.current).toBe(1);
+      expect(result.current).toBe(2);
     } finally {
       handle.close();
     }
@@ -25,7 +25,7 @@ describe('runMigrations', () => {
     const handle = await createTestDb();
     try {
       const row = handle.sqlite.prepare('PRAGMA user_version').get() as { user_version: number };
-      expect(row.user_version).toBe(1);
+      expect(row.user_version).toBe(2);
     } finally {
       handle.close();
     }
@@ -46,6 +46,7 @@ describe('runMigrations', () => {
         'ai_content',
         'favorites',
         'checkins',
+        'settings',
         'drizzle___ migrations', // not expected; placeholder for completeness
       ]) {
         if (expected.startsWith('drizzle')) continue;
