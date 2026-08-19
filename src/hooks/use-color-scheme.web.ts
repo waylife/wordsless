@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import type { ColorSchemeName } from 'react-native';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 
 /**
@@ -8,8 +9,12 @@ import { useColorScheme as useRNColorScheme } from 'react-native';
  */
 const noopSubscribe = () => () => undefined;
 
-export function useColorScheme(): 'light' | 'dark' | null | undefined {
-  const isClient = useSyncExternalStore(noopSubscribe, () => true, () => false);
+export function useColorScheme(): ColorSchemeName {
+  const isClient = useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
   const systemScheme = useRNColorScheme();
   return isClient ? systemScheme : 'light';
 }

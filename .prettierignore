@@ -1,0 +1,16 @@
+# Prettier ignore patterns
+node_modules
+.expo
+dist
+web-build
+ios
+android
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+*.min.js
+*.min.css
+.vscode
+.idea
+coverage
+*.tsbuildinfo
