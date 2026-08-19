@@ -38,6 +38,9 @@ yarn-error.*
 
 example
 
+# data pipeline output (rebuild via \`pnpm data:build\`)
+data/dist/
+
 # generated native folders
 /ios
 /android
