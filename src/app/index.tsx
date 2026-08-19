@@ -24,8 +24,8 @@ export default function HomeTab() {
         { label: '连续天数', value: '0' },
       ]}
       cta={{
-        label: '开始今日学习',
-        onPress: () => router.push('/study/session'),
+        label: '去选书',
+        onPress: () => router.push('/wordbooks/select'),
       }}
     />
   );

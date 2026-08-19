@@ -64,10 +64,13 @@ export const wordRepository = {
   async insertMany(db: Db, rows: NewWord[]): Promise<void> {
     if (rows.length === 0) return;
     // Chunk to keep individual statements under SQLite's parameter limit.
+    // onConflictDoNothing makes the call idempotent: re-seeding the
+    // same compiled JSON after the user uninstalls is safe.
     const CHUNK = 500;
     for (let i = 0; i < rows.length; i += CHUNK) {
       db.insert(words)
         .values(rows.slice(i, i + CHUNK))
+        .onConflictDoNothing()
         .run();
     }
   },
