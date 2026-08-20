@@ -74,4 +74,29 @@ export const wordRepository = {
         .run();
     }
   },
+
+  /**
+   * Pick `n` random words from the book other than `excludeId`. Used
+   * by the listen-mode quiz to generate plausible misspellings — the
+   * user has to identify the spelling they just heard.
+   *
+   * Pulls up to 4× the requested count from the DB (ordered randomly
+   * via a hash of the rowid), then slices client-side. We avoid
+   * SQLite's RANDOM() for portability.
+   */
+  async sampleDistractors(db: Db, bookId: string, excludeId: string, n: number): Promise<Word[]> {
+    if (n <= 0) return [];
+    const pool = await wordRepository.listByBook(db, {
+      bookId,
+      limit: Math.max(n * 4, 16),
+      offset: 0,
+    });
+    const candidates = pool.filter((w) => w.id !== excludeId);
+    // Shuffle (Fisher–Yates). We do this in JS for determinism in tests.
+    for (let i = candidates.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+    return candidates.slice(0, n);
+  },
 };

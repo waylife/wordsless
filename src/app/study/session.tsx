@@ -14,13 +14,14 @@
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { TextStyle, ViewStyle } from 'react-native';
 
 import { AiExplainPanel } from '@/components/ai-explain-panel';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { ChoiceCard, type ChoiceOption } from '@/components/choice-card';
+import { ListenCard } from '@/components/listen-card';
 import { ProgressRing } from '@/components/progress-ring';
 import { RatingBar } from '@/components/rating-bar';
 import { WordCard } from '@/components/word-card';
@@ -32,6 +33,7 @@ import { uuid } from '@/core/uuid';
 
 import { getDb } from '@/db/client';
 import { checkinRepository } from '@/db/repositories/checkins';
+import { favoritesRepository } from '@/db/repositories/favorites';
 import { reviewLogRepository } from '@/db/repositories/review-log';
 import { wordRepository } from '@/db/repositories/words';
 import { wordbookRepository } from '@/db/repositories/wordbooks';
@@ -75,6 +77,8 @@ export default function StudySessionScreen() {
   // "Cannot access ref value during render" lint rule.
   const [reviewedCount, setReviewedCount] = useState(0);
   const [counts, setCounts] = useState({ newCount: 0, learningCount: 0, reviewCount: 0 });
+  // Set of wordIds the user has favorited, hydrated once per session.
+  const [favoritedIds, setFavoritedIds] = useState<Set<string>>(new Set());
 
   // Build the session once on mount (and when mode/bookId change).
   useEffect(() => {
@@ -110,6 +114,13 @@ export default function StudySessionScreen() {
         setFlipped(false);
         setSelectedChoice(null);
         cardShownAt.current = Date.now();
+        // Hydrate the favorites set for the session.
+        try {
+          const favs = await favoritesRepository.list(db);
+          setFavoritedIds(new Set(favs.map((w) => w.id)));
+        } catch (err) {
+          console.warn('[study] failed to load favorites', err);
+        }
       } catch (err) {
         if (!cancelled) {
           setError((err as Error).message);
@@ -124,12 +135,56 @@ export default function StudySessionScreen() {
 
   const current = items[index];
   const isChoice = mode === 'choice' && current != null;
+  const isListen = mode === 'listen' && current != null;
 
   // Choice-mode options: 1 correct + 3 random distractors from the same book.
   const choiceOptions = useMemo<ChoiceOption[]>(() => {
     if (!current || !isChoice) return [];
     return buildChoiceOptions(current.word);
   }, [current, isChoice]);
+
+  // Listen-mode options: 4 spellings (1 correct + 3 distractor words
+  // from the same book). Fetched on demand from wordRepository so the
+  // user has to discriminate the actual spelling against real words.
+  const [listenOptions, setListenOptions] = useState<ChoiceOption[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    if (!isListen || !current) {
+      // Reset the listen-mode distractor pool when the mode flips off
+      // or the card changes; this is a legitimate synchronisation,
+      // not a render cascade.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setListenOptions([]);
+      return;
+    }
+    (async () => {
+      try {
+        const db = await getDb();
+        const distractors = await wordRepository.sampleDistractors(
+          db,
+          current.word.bookId,
+          current.word.id,
+          3,
+        );
+        if (cancelled) return;
+        const opts: ChoiceOption[] = [
+          { id: current.word.id, label: current.word.spelling },
+          ...distractors.map((w) => ({ id: w.id, label: w.spelling })),
+        ];
+        for (let i = opts.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [opts[i], opts[j]] = [opts[j], opts[i]];
+        }
+        setListenOptions(opts);
+      } catch (err) {
+        console.warn('[study] failed to fetch listen distractors', err);
+        if (!cancelled) setListenOptions([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [current, isListen]);
 
   // FSRS preview for the 4 self-rating buttons.
   const preview = useMemo(() => {
@@ -145,12 +200,22 @@ export default function StudySessionScreen() {
     return rated.preview;
   }, [current]);
 
-  // Speak the spelling automatically on card advance, except during
-  // choice mode (where listening is the actual exercise).
+  // Speak the spelling automatically on card advance. In `learn` mode
+  // we play the front side; in `listen` mode we play as soon as the
+  // options land; in `choice` mode we stay silent (the user reads).
   useEffect(() => {
-    if (!current || isChoice) return;
+    if (!current) return;
+    if (isListen) {
+      if (listenOptions.length === 0) return;
+      // Slight delay so the UI settles before audio starts.
+      const timer = setTimeout(() => {
+        void audio.speak(current.word.spelling, { accent, rate: 0.85 });
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+    if (isChoice) return;
     void audio.speak(current.word.spelling, { accent });
-  }, [current, isChoice, accent]);
+  }, [current, isChoice, isListen, listenOptions.length, accent]);
 
   // ---- handlers ------------------------------------------------------
 
@@ -260,6 +325,68 @@ export default function StudySessionScreen() {
     [current, index, items.length, counts, mode],
   );
 
+  // Mark a non-new card as "excluded" — already-known material. Frees
+  // the card from the FSRS queue; the user can re-import it later
+  // from the wordbook browser.
+  const onExclude = useCallback(async () => {
+    if (!current) return;
+    const isNew = current.state.id.startsWith('pending:');
+    try {
+      const db = await getDb();
+      if (isNew) {
+        // The card never made it to the queue — just create an
+        // already-excluded row so it never shows up as "new" again.
+        await wordStateRepository.upsert(db, {
+          id: uuid(),
+          wordId: current.word.id,
+          status: 'excluded',
+          fsrsState: { stability: 0, difficulty: 0 },
+          dueAt: new Date(),
+          reps: 0,
+          lapses: 0,
+        });
+      } else {
+        await wordStateRepository.markExcluded(db, current.state.id);
+      }
+    } catch (err) {
+      console.warn('[study] failed to mark excluded', err);
+    }
+    // Advance to the next card or finish — same path as onRate.
+    const nextIndex = index + 1;
+    if (nextIndex >= items.length) {
+      setPhase('done');
+      return;
+    }
+    setIndex(nextIndex);
+    setFlipped(false);
+    setSelectedChoice(null);
+    cardShownAt.current = Date.now();
+  }, [current, index, items.length]);
+
+  // Star/unstar a word. Idempotent — SQLite upsert handles the "already
+  // there" case, and the `add` call is onConflictDoNothing.
+  const onToggleFavorite = useCallback(
+    async (wordId: string) => {
+      setFavoritedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(wordId)) next.delete(wordId);
+        else next.add(wordId);
+        return next;
+      });
+      try {
+        const db = await getDb();
+        if (favoritedIds.has(wordId)) {
+          await favoritesRepository.remove(db, wordId);
+        } else {
+          await favoritesRepository.add(db, wordId);
+        }
+      } catch (err) {
+        console.warn('[study] favorite toggle failed', err);
+      }
+    },
+    [favoritedIds],
+  );
+
   // ---- renders -------------------------------------------------------
 
   if (phase === 'loading') {
@@ -351,7 +478,17 @@ export default function StudySessionScreen() {
       </View>
 
       <View style={styles.cardArea}>
-        {isChoice ? (
+        {isListen ? (
+          <ListenCard
+            options={listenOptions}
+            correctId={current.word.id}
+            selectedId={selectedChoice}
+            disabled={!flipped}
+            onSelect={onSelectChoice}
+            spelling={current.word.spelling}
+            accent={accent}
+          />
+        ) : isChoice ? (
           <ChoiceCard
             options={choiceOptions}
             correctId={current.word.id}
@@ -360,8 +497,19 @@ export default function StudySessionScreen() {
             onSelect={onSelectChoice}
           />
         ) : null}
-        <WordCard word={current.word} flipped={flipped} accent={accent} onPress={onPressCard} />
-        {!isChoice ? (
+        <WordCard
+          word={current.word}
+          flipped={flipped}
+          accent={accent}
+          onPress={onPressCard}
+          isFavorited={favoritedIds.has(current.word.id)}
+          onToggleFavorite={() => void onToggleFavorite(current.word.id)}
+        />
+        {isListen ? (
+          <Text style={[styles.hint, { color: theme.textSecondary }]}>
+            {selectedChoice == null ? '听音频 · 选拼写' : '选择你的感觉'}
+          </Text>
+        ) : !isChoice ? (
           <Text style={[styles.hint, { color: theme.textSecondary }]}>
             {flipped ? '选择你对这个词的感觉' : '轻点卡片查看释义'}
           </Text>
@@ -375,6 +523,25 @@ export default function StudySessionScreen() {
       {flipped ? (
         <View style={styles.bottomBar}>
           <RatingBar preview={preview} onRate={onRate} />
+          {current.state.status !== 'new' ? (
+            <Pressable
+              testID="exclude-button"
+              accessibilityRole="button"
+              accessibilityLabel="标记为太简单,移出新词循环"
+              onPress={() => void onExclude()}
+              style={({ pressed }) => [
+                styles.excludeButton,
+                {
+                  backgroundColor: pressed ? theme.backgroundSelected : 'transparent',
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.excludeLabel, { color: theme.textSecondary }]}>
+                太简单,移出循环 ↗
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
 
@@ -401,15 +568,19 @@ function parseMode(input: string | undefined): SessionMode | undefined {
 /**
  * Map our session navigation mode to the `review_log.mode` enum.
  * `learn`   → 'learn'   (free recall flashcard)
- * `review`  → 'choice'  (default review format until listen/spell land)
- * `choice`  → 'choice'
+ * `choice`  → 'choice'  (see word, pick meaning)
+ * `listen`  → 'listen'  (hear word, pick spelling)
+ * `review`  → 'choice'  (default review format; mixed with learn)
  */
 function sessionModeToReviewMode(mode: SessionMode): ReviewModeValue {
   switch (mode) {
     case 'learn':
       return 'learn';
-    case 'review':
     case 'choice':
+      return 'choice';
+    case 'listen':
+      return 'listen';
+    case 'review':
       return 'choice';
   }
 }
@@ -508,6 +679,17 @@ const styles: { [k: string]: ViewStyle | TextStyle } = {
   },
   bottomBar: {
     paddingTop: Spacing.two,
+    gap: Spacing.two,
+  },
+  excludeButton: {
+    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    borderRadius: Radii.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+  },
+  excludeLabel: {
+    fontSize: FontSize.small,
   },
   aiWrap: {
     paddingTop: Spacing.two,

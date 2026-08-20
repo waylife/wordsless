@@ -26,6 +26,9 @@ export type WordStatusValue = (typeof WordStatus)[number];
 export const ReviewMode = ['learn', 'choice', 'listen', 'spell'] as const;
 export type ReviewModeValue = (typeof ReviewMode)[number];
 
+// 'listen' = audio-first quiz: hear the word, pick the spelling
+// 'spell'  = type the spelling from audio (deferred to Phase 6)
+
 export const ReviewRating = ['forgot', 'hard', 'good', 'easy'] as const;
 export type ReviewRatingValue = (typeof ReviewRating)[number];
 

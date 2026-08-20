@@ -23,7 +23,7 @@ import { type Word, type WordState, words, wordStates } from '@/db/schema';
 import { checkinRepository } from '@/db/repositories/checkins';
 import { wordStateRepository } from '@/db/repositories/word-states';
 
-export type SessionMode = 'learn' | 'review' | 'choice';
+export type SessionMode = 'learn' | 'review' | 'choice' | 'listen';
 
 export interface SessionItem {
   state: WordState;

@@ -30,9 +30,21 @@ export interface WordCardProps {
   /** When false the play button is disabled (e.g. before audio loads). */
   onPlay?: () => void;
   onPress?: () => void;
+  /** Whether the word is currently in the favorites list. */
+  isFavorited?: boolean;
+  /** Tapped when the user presses the star. */
+  onToggleFavorite?: () => void;
 }
 
-function WordCardImpl({ word, flipped, accent, onPlay, onPress }: WordCardProps) {
+function WordCardImpl({
+  word,
+  flipped,
+  accent,
+  onPlay,
+  onPress,
+  isFavorited,
+  onToggleFavorite,
+}: WordCardProps) {
   const theme = useTheme();
   const primaryMeaning = word.meanings[0];
   const example = word.examples[0];
@@ -53,7 +65,29 @@ function WordCardImpl({ word, flipped, accent, onPlay, onPress }: WordCardProps)
     >
       {flipped ? (
         <View style={styles.back}>
-          <Text style={[styles.spelling, { color: theme.text }]}>{word.spelling}</Text>
+          <View style={styles.backHeader}>
+            <Text style={[styles.spelling, { color: theme.text }]}>{word.spelling}</Text>
+            {onToggleFavorite ? (
+              <Pressable
+                testID="favorite-toggle"
+                accessibilityRole="button"
+                accessibilityState={{ selected: Boolean(isFavorited) }}
+                accessibilityLabel={isFavorited ? '取消收藏' : '收藏'}
+                onPress={onToggleFavorite}
+                hitSlop={12}
+                style={({ pressed }) => [styles.favButton, pressed && styles.favButtonPressed]}
+              >
+                <Text
+                  style={[
+                    styles.favIcon,
+                    { color: isFavorited ? SemanticColors.warning : theme.textSecondary },
+                  ]}
+                >
+                  {isFavorited ? '★' : '☆'}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
           {phonetic ? (
             <Text style={[styles.phonetic, { color: theme.textSecondary }]}>{phonetic}</Text>
           ) : null}
@@ -122,6 +156,25 @@ const styles: { [k: string]: ViewStyle | TextStyle } = {
   },
   back: {
     gap: Spacing.two,
+  },
+  backHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  favButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  favButtonPressed: {
+    opacity: 0.6,
+  },
+  favIcon: {
+    fontSize: 24,
   },
   playButton: {
     width: 56,

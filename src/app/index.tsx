@@ -136,6 +136,14 @@ export default function HomeTab() {
         <View style={styles.actions}>
           <Button label="开始今日学习" size="lg" fullWidth onPress={() => void startLearn()} />
           <Button
+            label="听音辨词"
+            variant="secondary"
+            size="lg"
+            fullWidth
+            leftIcon={<Text>🎧</Text>}
+            onPress={() => router.push('/study/session?mode=listen')}
+          />
+          <Button
             label={`进入复习队列 (${counts.dueCount})`}
             variant="secondary"
             size="lg"
