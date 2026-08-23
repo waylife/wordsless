@@ -86,15 +86,22 @@ export interface HomeCounts {
   masteredCount: number;
   totalCount: number;
   streakDays: number;
+  /**
+   * Recent checkins in chronological order, used to drive the
+   * streak calendar. We pull a fixed 42-day window so the heatmap
+   * can always render a complete grid.
+   */
+  recentCheckins: { date: string; newCount: number; reviewCount: number }[];
 }
 
 export async function getHomeCounts(db: Db, now: Date = new Date()): Promise<HomeCounts> {
-  const [due, learning, mastered, total, streak] = await Promise.all([
+  const [due, learning, mastered, total, streak, recent] = await Promise.all([
     countByStatus(db, 'review', now),
     countByStatus(db, 'learning', now),
     countByStatus(db, 'mastered', null),
     wordStateRepository.countAll(db),
     checkinRepository.currentStreak(db),
+    checkinRepository.listRecent(db, 42),
   ]);
 
   return {
@@ -104,6 +111,11 @@ export async function getHomeCounts(db: Db, now: Date = new Date()): Promise<Hom
     masteredCount: mastered,
     totalCount: total,
     streakDays: streak,
+    recentCheckins: recent.map((r) => ({
+      date: r.date,
+      newCount: r.newCount,
+      reviewCount: r.reviewCount,
+    })),
   };
 }
 

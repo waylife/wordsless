@@ -23,4 +23,14 @@ module.exports = defineConfig([
       },
     },
   },
+  {
+    files: ['jest.setup.js', 'jest.*.js'],
+    languageOptions: {
+      globals: {
+        // jest is a Node global injected by the jest CLI; no import
+        // is needed and ESLint shouldn't flag it.
+        jest: 'readonly',
+      },
+    },
+  },
 ]);

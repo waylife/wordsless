@@ -5,16 +5,19 @@
  *   - "今日新词"  = how many new words are queued (driven by the
  *                   settings' daily new-word quota)
  *   - "待复习"    = due review + learning cards
- *   - "连续天数"  = current checkin streak
  *   - "已掌握"    = total words in `mastered` status
+ *   - "连续天数"  = current checkin streak, rendered as a flame badge
+ *                   plus a 28-day heatmap calendar
  */
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import type { TextStyle, ViewStyle } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { StreakBadge } from '@/components/streak-badge';
+import { StreakCalendar } from '@/components/streak-calendar';
 import { getDb } from '@/db/client';
 import { getHomeCounts, type HomeCounts } from '@/core/scheduler';
 import { buildSession } from '@/core/scheduler';
@@ -30,6 +33,7 @@ const DEFAULT_COUNTS: HomeCounts = {
   masteredCount: 0,
   totalCount: 0,
   streakDays: 0,
+  recentCheckins: [],
 };
 
 export default function HomeTab() {
@@ -96,11 +100,34 @@ export default function HomeTab() {
     router.push('/study/session?mode=review');
   }, [router]);
 
+  // Map {date → cards reviewed} for the streak calendar. We also
+  // derive `studiedToday` here so the badge can soften its color when
+  // the user is yet to break today's seal.
+  const calendarCounts = useMemo(() => {
+    const out: Record<string, number> = {};
+    let studiedToday = false;
+    const todayIso = isoDay(new Date());
+    for (const r of counts.recentCheckins) {
+      out[r.date] = r.newCount + r.reviewCount;
+      if (r.date === todayIso && (r.newCount > 0 || r.reviewCount > 0)) {
+        studiedToday = true;
+      }
+    }
+    return { byDate: out, studiedToday };
+  }, [counts.recentCheckins]);
+
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <View style={styles.hero}>
-        <Text style={[styles.title, { color: theme.text }]}>今日</Text>
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>每天 30 词,稳扎稳打。</Text>
+        <View style={styles.heroHeader}>
+          <View style={styles.heroTitleWrap}>
+            <Text style={[styles.title, { color: theme.text }]}>今日</Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+              每天 30 词,稳扎稳打。
+            </Text>
+          </View>
+          <StreakBadge current={counts.streakDays} studiedToday={calendarCounts.studiedToday} />
+        </View>
       </View>
 
       {loading ? (
@@ -116,20 +143,36 @@ export default function HomeTab() {
           <Button label="去选书" onPress={() => router.push('/wordbooks/select')} />
         </Card>
       ) : (
-        <Card variant="flat" padding="four" radius="lg" style={styles.metaCard}>
-          <MetaRow label="今日新词" value={String(counts.newCount)} tint={SemanticColors.new} />
-          <MetaRow label="待复习" value={String(counts.dueCount)} tint={SemanticColors.review} />
-          <MetaRow
-            label="已掌握"
-            value={String(counts.masteredCount)}
-            tint={SemanticColors.mastered}
-          />
-          <MetaRow
-            label="连续天数"
-            value={String(counts.streakDays)}
-            tint={SemanticColors.warning}
-          />
-        </Card>
+        <>
+          <Card variant="flat" padding="four" radius="lg" style={styles.metaCard}>
+            <MetaRow label="今日新词" value={String(counts.newCount)} tint={SemanticColors.new} />
+            <MetaRow label="待复习" value={String(counts.dueCount)} tint={SemanticColors.review} />
+            <MetaRow
+              label="已掌握"
+              value={String(counts.masteredCount)}
+              tint={SemanticColors.mastered}
+            />
+            <MetaRow
+              label="连续天数"
+              value={String(counts.streakDays)}
+              tint={SemanticColors.warning}
+            />
+          </Card>
+
+          <Card variant="flat" padding="four" radius="lg" style={styles.calendarCard}>
+            <View style={styles.calendarHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>打卡日历</Text>
+              <Text style={[styles.sectionSub, { color: theme.textSecondary }]}>
+                {calendarCounts.studiedToday
+                  ? '今天已经打卡 ✓'
+                  : counts.streakDays > 0
+                    ? '别断签,继续加油'
+                    : '开始第一天打卡'}
+              </Text>
+            </View>
+            <StreakCalendar counts={calendarCounts.byDate} days={28} />
+          </Card>
+        </>
       )}
 
       {hasBook ? (
@@ -167,15 +210,32 @@ function MetaRow({ label, value, tint }: { label: string; value: string; tint: s
   );
 }
 
+function isoDay(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 const styles: { [k: string]: ViewStyle | TextStyle } = {
   screen: {
     flex: 1,
     paddingHorizontal: Spacing.four,
     paddingTop: Spacing.six,
     paddingBottom: Spacing.four,
-    gap: Spacing.five,
+    gap: Spacing.four,
   },
   hero: {
+    gap: Spacing.two,
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: Spacing.three,
+  },
+  heroTitleWrap: {
+    flex: 1,
     gap: Spacing.two,
   },
   title: {
@@ -211,6 +271,22 @@ const styles: { [k: string]: ViewStyle | TextStyle } = {
     fontSize: FontSize.subtitle,
     fontWeight: FontWeight.bold,
     color: Colors.light.text,
+  },
+  calendarCard: {
+    gap: Spacing.three,
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  sectionTitle: {
+    fontSize: FontSize.subtitle,
+    fontWeight: FontWeight.semibold,
+  },
+  sectionSub: {
+    fontSize: FontSize.small,
   },
   actions: {
     gap: Spacing.two,

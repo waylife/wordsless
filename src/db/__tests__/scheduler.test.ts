@@ -169,6 +169,33 @@ describe('getHomeCounts', () => {
       expect(counts.dueCount).toBe(0);
       expect(counts.masteredCount).toBe(0);
       expect(counts.totalCount).toBe(0);
+      expect(counts.streakDays).toBe(0);
+      expect(counts.recentCheckins).toEqual([]);
+    } finally {
+      handle.close();
+    }
+  });
+
+  it('includes recent checkins for the streak calendar', async () => {
+    const handle = await createTestDb();
+    try {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const todayKey = `${yyyy}-${mm}-${dd}`;
+      handle.sqlite
+        .prepare(
+          'INSERT INTO checkins (date, new_count, review_count, study_seconds) VALUES (?, ?, ?, 0)',
+        )
+        .run(todayKey, 5, 3);
+      const counts = await getHomeCounts(handle.db);
+      expect(counts.recentCheckins).toHaveLength(1);
+      expect(counts.recentCheckins[0]).toEqual({
+        date: todayKey,
+        newCount: 5,
+        reviewCount: 3,
+      });
     } finally {
       handle.close();
     }
