@@ -8,7 +8,8 @@
     "scheme": "wordsless",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.anonymous.wordsless"
     },
     "android": {
       "adaptiveIcon": {
