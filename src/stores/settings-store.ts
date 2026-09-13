@@ -39,6 +39,13 @@ export interface SettingsState {
   reminderEnabled: boolean;
   reminderHour: ReminderHour;
   reminderMinute: ReminderMinute;
+  /**
+   * Legacy single-model field from the pre-multi-source layout. No
+   * longer used by the AI UI (see `stores/ai-store.ts`); kept in the
+   * persisted shape so `ai-store.hydrate()` can migrate it to an
+   * `ai.selection` on first boot, and left null afterwards.
+   */
+  model: string | null;
   /** Set to `true` after the first boot-time hydrate so the UI can avoid flash-of-defaults. */
   hydrated: boolean;
 
@@ -62,6 +69,13 @@ interface PersistedSettings {
   reminderEnabled: boolean;
   reminderHour: ReminderHour;
   reminderMinute: ReminderMinute;
+  /**
+   * Legacy single-model field from the pre-multi-source layout. No
+   * longer used by the AI UI (see `stores/ai-store.ts`); kept in the
+   * persisted shape so `ai-store.hydrate()` can migrate it to an
+   * `ai.selection` on first boot, and left null afterwards.
+   */
+  model: string | null;
 }
 
 const KEY = 'app';
@@ -71,6 +85,7 @@ const DEFAULTS: PersistedSettings = {
   reminderEnabled: false,
   reminderHour: 21,
   reminderMinute: 0,
+  model: null,
 };
 
 function isAccent(v: unknown): v is Accent {
@@ -99,6 +114,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   reminderEnabled: DEFAULTS.reminderEnabled,
   reminderHour: DEFAULTS.reminderHour,
   reminderMinute: DEFAULTS.reminderMinute,
+  model: DEFAULTS.model,
   hydrated: false,
 
   async hydrate() {
@@ -120,6 +136,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           reminderMinute: isReminderMinute(persisted.reminderMinute)
             ? persisted.reminderMinute
             : DEFAULTS.reminderMinute,
+          model: typeof persisted.model === 'string' ? persisted.model : DEFAULTS.model,
           hydrated: true,
         });
         return;
