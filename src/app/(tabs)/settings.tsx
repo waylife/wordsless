@@ -6,25 +6,41 @@
  *  - 每日新词    → drives `buildSession(dailyNewWords)`
  *  - 每日提醒    → drives `scheduleDailyReminder` (F14, Phase 4)
  *  - API Key     → written to `expo-secure-store`; read by
- *                  `core/ai/runtime.getApiKey`
+ *                  `core/ai/runtime.getApiKey`. "测试" probes the
+ *                  endpoint with the key in the field and, on success,
+ *                  persists it.
  *
  * Theme override lands in F18.
+ *
+ * The screen is wrapped in a ScrollView (not a plain flex View) so the
+ * tab bar can't overlap content when the list gets longer than the viewport.
+ * NativeTabs' automatic content inset has been unreliable for this screen in
+ * practice (esp. on iOS 26), so we take an explicit approach:
+ *
+ *   1. `useSafeAreaInsets().bottom` — inside a NativeTabs tab this is already
+ *      the tab bar height + the home-indicator inset (NativeTabs sets
+ *      `additionalSafeAreaInsets` on its content providers).
+ *   2. Add `Spacing.three` of buffer so buttons aren't pressed against the
+ *      tab bar edge when the auto value is off by a few points.
+ *   3. Disable `contentInsetAdjustmentBehavior` so the system doesn't
+ *      double-inset on top of our explicit padding.
  */
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import type { TextStyle, ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
-import { Button } from '@/components/button';
 import { Card } from '@/components/card';
-import { getApiKey, setApiKey, clearApiKey } from '@/core/ai/runtime';
+import { useAiSettingsStore } from '@/stores/ai-store';
 import {
   getReminderPermission,
   isSchedulingAvailable,
@@ -48,11 +64,19 @@ import { useTheme } from '@/hooks/use-theme';
 
 export default function SettingsTab() {
   const theme = useTheme();
+  const router = useRouter();
+  // Inside a NativeTabs tab this hook's `.bottom` already accounts for the
+  // tab bar height — NativeTabs sets `additionalSafeAreaInsets` on the
+  // content providers it wraps. We use it to keep the AI entry card
+  // from landing under the tab bar on iOS 26, where NativeTabs'
+  // automatic ScrollView inset has been unreliable.
+  const insets = useSafeAreaInsets();
   const accent = useSettingsStore((s) => s.accent);
   const dailyNewWords = useSettingsStore((s) => s.dailyNewWords);
   const reminderEnabled = useSettingsStore((s) => s.reminderEnabled);
   const reminderHour = useSettingsStore((s) => s.reminderHour);
   const reminderMinute = useSettingsStore((s) => s.reminderMinute);
+  const aiBlob = useAiSettingsStore((s) => s.blob);
   const setAccent = useSettingsStore((s) => s.setAccent);
   const setDailyNewWords = useSettingsStore((s) => s.setDailyNewWords);
   // Pulled from the store but driven through the applyReminder
@@ -63,27 +87,21 @@ export default function SettingsTab() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const setReminderTime = useSettingsStore((s) => s.setReminderTime);
 
-  const [keyInput, setKeyInput] = useState('');
-  const [hasKey, setHasKey] = useState<boolean | null>(null);
-  const [savingKey, setSavingKey] = useState(false);
-  const [keyMessage, setKeyMessage] = useState<string | null>(null);
-
   const schedulingAvailable = isSchedulingAvailable();
   const [permission, setPermission] = useState<ReminderPermission>('undetermined');
   const [schedulingMessage, setSchedulingMessage] = useState<string | null>(null);
   const [schedulingBusy, setSchedulingBusy] = useState(false);
 
-  useEffect(() => {
-    void (async () => {
-      try {
-        const k = await getApiKey();
-        setHasKey(Boolean(k));
-        setKeyInput(k);
-      } catch {
-        setHasKey(false);
-      }
-    })();
-  }, []);
+  // AI 入口卡片摘要：当前来源 · 模型 · prompt 名称。
+  const aiSummary = (() => {
+    if (!aiBlob) return '加载中…';
+    const [sourceId, modelValue] = (aiBlob.selection ?? '').split('::');
+    const source = aiBlob.sources.find((s) => s.id === sourceId);
+    const prompt = aiBlob.prompts.find((p) => p.id === aiBlob.activePromptId);
+    if (!source || !modelValue) return '尚未选择模型';
+    const promptSuffix = prompt ? ` · ${prompt.label}` : '';
+    return `${source.label} · ${modelValue}${promptSuffix}`;
+  })();
 
   // Probe the OS permission on mount. We don't show a system prompt
   // yet — the user has to opt in via the toggle first.
@@ -98,26 +116,6 @@ export default function SettingsTab() {
       setPermission(p);
     })();
   }, [schedulingAvailable]);
-
-  const onSaveKey = async () => {
-    setSavingKey(true);
-    setKeyMessage(null);
-    try {
-      if (!keyInput.trim()) {
-        await clearApiKey();
-        setHasKey(false);
-        setKeyMessage('已清除');
-      } else {
-        await setApiKey(keyInput);
-        setHasKey(true);
-        setKeyMessage('已保存到钥匙串');
-      }
-    } catch (err) {
-      setKeyMessage(`保存失败: ${(err as Error).message}`);
-    } finally {
-      setSavingKey(false);
-    }
-  };
 
   // Re-schedule whenever any of the reminder inputs change. We
   // always re-call — `scheduleDailyReminder` cancels the previous
@@ -209,7 +207,15 @@ export default function SettingsTab() {
   );
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+    <ScrollView
+      style={[styles.screen, { backgroundColor: theme.background }]}
+      contentContainerStyle={[
+        styles.screenContent,
+        { paddingBottom: insets.bottom + Spacing.three },
+      ]}
+      contentInsetAdjustmentBehavior="never"
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={[styles.title, { color: theme.text }]}>设置</Text>
 
       <Card variant="flat" padding="four" radius="lg" style={styles.card}>
@@ -385,62 +391,31 @@ export default function SettingsTab() {
         {schedulingBusy ? <ActivityIndicator color={Colors.light.primary} /> : null}
       </Card>
 
-      <Card variant="flat" padding="four" radius="lg" style={styles.card}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>AI 解释</Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push('/settings/ai')}
+        style={({ pressed }) => [
+          styles.aiEntryCard,
+          {
+            backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement,
+            borderColor: theme.border,
+          },
+        ]}
+      >
+        <View style={styles.aiEntryRow}>
+          <View style={{ flex: 1, gap: Spacing.half }}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>AI 模型设置</Text>
+            <Text style={[styles.hint, { color: theme.textSecondary }]} numberOfLines={1}>
+              {aiSummary}
+            </Text>
+          </View>
+          <Text style={[styles.aiEntryChevron, { color: theme.textSecondary }]}>›</Text>
+        </View>
         <Text style={[styles.hint, { color: theme.textSecondary }]}>
-          使用 MiniMax API 为任意单词生成词源 / 助记 / 例句。Key 仅存本地钥匙串,不上传。
+          多来源 / 多模型管理，AI 注释 Prompt 自定义，测试效果。Key 仅存本地钥匙串，不上传。
         </Text>
-        <View style={styles.keyRow}>
-          <View
-            style={[
-              styles.statusDot,
-              { backgroundColor: hasKey ? SemanticColors.success : SemanticColors.excluded },
-            ]}
-          />
-          <Text style={[styles.statusText, { color: theme.textSecondary }]}>
-            {hasKey == null ? '检查中…' : hasKey ? '已配置' : '未配置'}
-          </Text>
-        </View>
-        <TextInput
-          value={keyInput}
-          onChangeText={setKeyInput}
-          placeholder="sk-..."
-          placeholderTextColor={theme.textSecondary}
-          autoCapitalize="none"
-          autoCorrect={false}
-          secureTextEntry
-          style={[
-            styles.input,
-            {
-              backgroundColor: theme.backgroundElement,
-              color: theme.text,
-              borderColor: theme.border,
-            },
-          ]}
-        />
-        <View style={styles.actions}>
-          <Button
-            label={savingKey ? '保存中…' : '保存'}
-            onPress={() => void onSaveKey()}
-            loading={savingKey}
-          />
-          {hasKey ? (
-            <Button
-              label="清除"
-              variant="ghost"
-              onPress={() => {
-                setKeyInput('');
-                void onSaveKey();
-              }}
-            />
-          ) : null}
-        </View>
-        {keyMessage ? (
-          <Text style={[styles.message, { color: theme.textSecondary }]}>{keyMessage}</Text>
-        ) : null}
-        {savingKey ? <ActivityIndicator color={Colors.light.primary} /> : null}
-      </Card>
-    </View>
+      </Pressable>
+    </ScrollView>
   );
 }
 
@@ -464,6 +439,9 @@ function permissionMessage(p: ReminderPermission): string {
 const styles: { [k: string]: ViewStyle | TextStyle } = {
   screen: {
     flex: 1,
+  },
+  screenContent: {
+    flexGrow: 1,
     paddingHorizontal: Spacing.four,
     paddingTop: Spacing.six,
     paddingBottom: Spacing.four,
@@ -476,6 +454,21 @@ const styles: { [k: string]: ViewStyle | TextStyle } = {
   },
   card: {
     gap: Spacing.three,
+  },
+  aiEntryCard: {
+    borderRadius: Radii.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: Spacing.four,
+    gap: Spacing.two,
+  },
+  aiEntryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  aiEntryChevron: {
+    fontSize: FontSize.title,
+    fontWeight: FontWeight.bold,
   },
   sectionTitle: {
     fontSize: FontSize.subtitle,
@@ -498,30 +491,6 @@ const styles: { [k: string]: ViewStyle | TextStyle } = {
   },
   hint: {
     fontSize: FontSize.small,
-  },
-  keyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusText: {
-    fontSize: FontSize.small,
-  },
-  input: {
-    borderRadius: Radii.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    fontSize: FontSize.body,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: Spacing.two,
   },
   message: {
     fontSize: FontSize.small,
