@@ -5,11 +5,13 @@
  * text. The parent owns "is the panel open" / "which word to ask
  * about"; this component owns the request lifecycle.
  *
- * Output is expected to be JSON shaped as { root, mnemonic, example }
- * (see runtimeSystemPrompt in `core/ai/runtime.ts`). We parse what we
- * can from the partial text and render the three sections side by
- * side as the stream lands — that way the user gets feedback before
- * the model finishes.
+ * Output is expected to be JSON shaped as
+ *   { root, mnemonic, examples: [{ en, cn }, …] }
+ * (see RUNTIME_SYSTEM_PROMPT in `core/ai/runtime.ts`). We parse what we
+ * can from the partial text and render the sections as the stream lands —
+ * that way the user gets feedback before the model finishes. We render as
+ * many complete examples as we've seen; partial ones wait for the next
+ * delta.
  */
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -34,32 +36,41 @@ export interface AiExplainPanelProps {
 interface ParsedSections {
   root: string;
   mnemonic: string;
-  exampleEn: string;
-  exampleCn: string;
+  examples: { en: string; cn: string }[];
   raw: string;
 }
 
-function parseSections(text: string): ParsedSections {
+export function parseSections(text: string): ParsedSections {
+  // Use JSON.parse to unescape \" \\ \n etc. reliably; fall back to a
+  // naive unescape if the stream is mid-token.
+  const unescape = (s: string) => {
+    try {
+      return JSON.parse(`"${s}"`) as string;
+    } catch {
+      return s.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    }
+  };
   // We accept a partial parse — the model streams tokens and we want to
   // surface the earliest possible structured view.
   const grab = (key: string): string => {
     const re = new RegExp(`"${key}"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`, 's');
     const m = text.match(re);
-    return m ? m[1].replace(/\\n/g, '\n') : '';
+    return m ? unescape(m[1]) : '';
   };
-  const grabNested = (parent: string, key: string): string => {
-    const re = new RegExp(
-      `"${parent}"\\s*:\\s*\\{[^}]*"${key}"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`,
-      's',
-    );
-    const m = text.match(re);
-    return m ? m[1].replace(/\\n/g, '\n') : '';
-  };
+  // Grab every complete {en, cn} pair inside the "examples" array. We
+  // tolerate either key order and stop at the first un-terminated string
+  // (which is what you get mid-stream). Each match becomes one example.
+  const exampleRe = /"en"\s*:\s*"((?:\\.|[^"\\])*)"\s*,\s*"cn"\s*:\s*"((?:\\.|[^"\\])*)"/g;
+  const examples: { en: string; cn: string }[] = [];
+  for (const m of text.matchAll(exampleRe)) {
+    const en = unescape(m[1]);
+    const cn = unescape(m[2]);
+    if (en && cn) examples.push({ en, cn });
+  }
   return {
     root: grab('root'),
     mnemonic: grab('mnemonic'),
-    exampleEn: grabNested('example', 'en'),
-    exampleCn: grabNested('example', 'cn'),
+    examples,
     raw: text,
   };
 }
@@ -121,9 +132,7 @@ export function AiExplainPanel({
   }
 
   const sections = parseSections(text);
-  const hasAny = Boolean(
-    sections.root || sections.mnemonic || sections.exampleEn || sections.exampleCn,
-  );
+  const hasAny = Boolean(sections.root || sections.mnemonic || sections.examples.length > 0);
 
   return (
     <View testID="ai-explain-panel" style={[styles.wrap, { borderColor: theme.border }]}>
@@ -171,12 +180,20 @@ export function AiExplainPanel({
         <View style={styles.sections}>
           {sections.root ? <Section title="词源" body={sections.root} /> : null}
           {sections.mnemonic ? <Section title="助记" body={sections.mnemonic} /> : null}
-          {sections.exampleEn ? (
-            <Section
-              title="例句"
-              body={`${sections.exampleEn}${sections.exampleCn ? `\n${sections.exampleCn}` : ''}`}
-            />
+          {sections.examples.length > 0 ? (
+            <Section title={`例句 (${sections.examples.length})`} body="" />
           ) : null}
+          {sections.examples.map((ex, i) => (
+            <View key={`${i}-${ex.en.slice(0, 24)}`} style={styles.exampleRow}>
+              <Text style={[styles.exampleIndex, { color: SemanticColors.primary }]}>{i + 1}</Text>
+              <View style={styles.exampleBody}>
+                <Text style={[styles.exampleEn, { color: theme.text }]}>{ex.en}</Text>
+                {ex.cn ? (
+                  <Text style={[styles.exampleCn, { color: theme.textSecondary }]}>{ex.cn}</Text>
+                ) : null}
+              </View>
+            </View>
+          ))}
         </View>
       ) : null}
     </View>
@@ -187,7 +204,7 @@ function Section({ title, body }: { title: string; body: string }) {
   return (
     <View style={styles.section}>
       <Text style={[styles.sectionTitle, { color: SemanticColors.primary }]}>{title}</Text>
-      <Text style={[styles.sectionBody, { color: Colors.light.text }]}>{body}</Text>
+      {body ? <Text style={[styles.sectionBody, { color: Colors.light.text }]}>{body}</Text> : null}
     </View>
   );
 }
@@ -243,5 +260,29 @@ const styles: { [k: string]: ViewStyle | TextStyle } = {
   sectionBody: {
     fontSize: FontSize.body,
     lineHeight: 22,
+  },
+  exampleRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    paddingLeft: Spacing.three,
+    paddingVertical: Spacing.half,
+  },
+  exampleIndex: {
+    fontSize: FontSize.small,
+    fontWeight: FontWeight.bold,
+    minWidth: 14,
+    marginTop: 2,
+  },
+  exampleBody: {
+    flex: 1,
+    gap: 2,
+  },
+  exampleEn: {
+    fontSize: FontSize.body,
+    lineHeight: 20,
+  },
+  exampleCn: {
+    fontSize: FontSize.small,
+    lineHeight: 18,
   },
 };
