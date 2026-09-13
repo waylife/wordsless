@@ -2,12 +2,12 @@
  * MiniMax client tests — run the chatCompletion function end-to-end
  * against a mock fetch, verifying request shape, error mapping, and
  * streaming consumption.
+ *
+ * The `readApiKey` test cases now live in `data/__tests__/readApiKey.test.ts`
+ * because `readApiKey` itself lives under `data/` (Node-only, kept out of
+ * the app bundle graph so Metro never resolves `node:fs`).
  */
-import { writeFileSync, unlinkSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
-
-import { MiniMaxApiError, chatCompletion, readApiKey } from '@/core/ai/client';
+import { MiniMaxApiError, chatCompletion } from '@/core/ai/client';
 
 function makeFetch(
   handler: (url: string, init: RequestInit) => Promise<Response> | Response,
@@ -82,34 +82,5 @@ describe('chatCompletion (non-streaming)', () => {
         fetchImpl,
       }),
     ).rejects.toBeDefined();
-  });
-});
-
-describe('readApiKey', () => {
-  it('returns env value if non-empty', () => {
-    expect(readApiKey('abc')).toBe('abc');
-    expect(readApiKey('  abc  ')).toBe('abc');
-    expect(readApiKey('   ')).toBe('');
-  });
-
-  it('falls back to .env file when env is empty', () => {
-    const dir = join(tmpdir(), 'wordsless-test');
-    mkdirSync(dir, { recursive: true });
-    const path = join(dir, 'test.env');
-    writeFileSync(path, '# comment\nMINIMAX_API_KEY=sk-test-123\nOTHER=ignore\n', 'utf8');
-    try {
-      expect(readApiKey('', path)).toBe('sk-test-123');
-      expect(readApiKey(undefined, path)).toBe('sk-test-123');
-    } finally {
-      try {
-        unlinkSync(path);
-      } catch {
-        // ignore
-      }
-    }
-  });
-
-  it('returns empty string when nothing is set', () => {
-    expect(readApiKey(undefined, '/definitely/does/not/exist')).toBe('');
   });
 });
