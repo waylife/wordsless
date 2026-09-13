@@ -1,0 +1,111 @@
+name: Release
+
+# Build signed Android (.aab / .apk) and iOS (.ipa) packages on EAS cloud
+# builders, and optionally hand the finished builds off to the app stores.
+#
+# Triggers:
+#   - push a semver tag (`v1.2.3`) -> both platforms, `production` profile
+#   - workflow_dispatch -> pick platform / profile / store submission
+#
+# One-time setup (see plans/PLAN.md §7):
+#   1. Run `pnpm dlx eas-cli init` — logs into expo.dev and writes
+#      extra.eas.projectId into app.json (commit the result).
+#   2. Add an EXPO_TOKEN repository secret from
+#      https://expo.dev/settings/access-tokens.
+#   3. Run one interactive `eas build` locally per platform so EAS can create
+#      the Android keystore / iOS signing credentials it will manage for you.
+#
+# Optional store submission (off by default):
+#   Upload the Google Play service-account key and the App Store Connect API
+#   key to EAS (`eas credentials` or the EAS dashboard), add
+#   `submit.production.ios.ascAppId` to eas.json, then either set the
+#   repository variable EAS_AUTO_SUBMIT=true for tag builds or tick "submit"
+#   on manual runs. Default targets: Play internal testing track + TestFlight.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to build
+        type: choice
+        options:
+          - all
+          - android
+          - ios
+        default: all
+      profile:
+        description: EAS build profile
+        type: choice
+        options:
+          - production
+          - preview
+        default: production
+      submit:
+        description: Submit finished builds to stores (requires EAS credentials)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Tags are immutable triggers; never cancel a queued release run.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: EAS build (${{ inputs.platform || 'all' }} / ${{ inputs.profile || 'production' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      BUILD_PLATFORM: ${{ inputs.platform || 'all' }}
+      BUILD_PROFILE: ${{ inputs.profile || 'production' }}
+      SUBMIT_TO_STORES: ${{ (inputs.submit == true || vars.EAS_AUTO_SUBMIT == 'true') && 'true' || 'false' }}
+      EXPO_TOKEN_CONFIGURED: ${{ secrets.EXPO_TOKEN != '' && 'true' || 'false' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify EXPO_TOKEN secret
+        if: env.EXPO_TOKEN_CONFIGURED != 'true'
+        run: |
+          echo "::error::EXPO_TOKEN secret is not configured. Create a token at https://expo.dev/settings/access-tokens and add it as the EXPO_TOKEN repository secret."
+          exit 1
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # Builds run on EAS cloud builders; --no-wait keeps this runner free.
+      # The CLI prints dashboard URLs for the queued builds before exiting.
+      - name: Trigger EAS build
+        run: |
+          set -euo pipefail
+          args=(--platform "$BUILD_PLATFORM" --profile "$BUILD_PROFILE" --non-interactive --no-wait)
+          if [ "$SUBMIT_TO_STORES" = "true" ]; then
+            args+=(--auto-submit)
+          fi
+          if [[ "${GITHUB_REF_NAME:-}" == v* ]]; then
+            args+=(--message "release ${GITHUB_REF_NAME}")
+          fi
+          eas build "${args[@]}"
+
+      - name: Write job summary
+        run: |
+          {
+            echo '## EAS build triggered'
+            echo ''
+            echo '| Platform | Profile | Submit to stores |'
+            echo '| --- | --- | --- |'
+            echo "| \`${BUILD_PLATFORM}\` | \`${BUILD_PROFILE}\` | \`${SUBMIT_TO_STORES}\` |"
+            echo ''
+            echo 'Builds run on EAS cloud builders. Follow progress and download the artifacts from the [EAS dashboard](https://expo.dev) (URLs are also printed in the "Trigger EAS build" step log).'
+          } >>"$GITHUB_STEP_SUMMARY"
