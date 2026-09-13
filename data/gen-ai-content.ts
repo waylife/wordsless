@@ -20,7 +20,8 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
-import { chatCompletion, readApiKey } from '../src/core/ai/client';
+import { chatCompletion } from '../src/core/ai/client';
+import { readApiKey } from './readApiKey';
 import {
   buildChatOptions,
   extractJsonObject,
