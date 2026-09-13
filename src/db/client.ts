@@ -14,6 +14,7 @@ import * as SQLite from 'expo-sqlite';
 import { drizzle } from 'drizzle-orm/expo-sqlite';
 
 import * as schema from './schema';
+import { runMigrations } from './migrate';
 
 const DB_NAME = 'wordsless.db';
 
@@ -38,6 +39,10 @@ export async function getDb(): Promise<WordslessDatabase> {
     await sqlite.execAsync('PRAGMA journal_mode = WAL;');
     await sqlite.execAsync('PRAGMA foreign_keys = ON;');
     const db = drizzle(sqlite, { schema });
+    // Idempotent migration: reads `user_version`, applies any pending
+    // DDL, records the new high-water mark. First launch creates every
+    // table; subsequent launches are a single PRAGMA read.
+    await runMigrations(db as unknown as Parameters<typeof runMigrations>[0]);
     _db = db;
     return db;
   })();
