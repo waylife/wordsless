@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import * as SplashScreen from 'expo-splash-screen';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -11,6 +11,25 @@ const DURATION = 600;
 export function AnimatedSplashOverlay() {
   const [animate, setAnimate] = useState(false);
   const [visible, setVisible] = useState(true);
+
+  // Immediately schedule a hard timeout that removes the overlay
+  // regardless of whether the Reanimated animation ever finishes. This
+  // ensures the overlay can never keep intercepting touches on the
+  // screens below (previous bug: clicking "去选书" did nothing because
+  // the invisible overlay swallowed the touch).
+  useEffect(() => {
+    const id = setTimeout(() => setVisible(false), DURATION + 300);
+    return () => clearTimeout(id);
+  }, []);
+
+  // Start the animation once the native splash is hidden.
+  useEffect(() => {
+    SplashScreen.hideAsync()
+      .catch(() => {})
+      .finally(() => {
+        setAnimate(true);
+      });
+  }, []);
 
   if (!visible) return null;
 
@@ -37,6 +56,7 @@ export function AnimatedSplashOverlay() {
 
   return animate ? (
     <Animated.View
+      pointerEvents="none"
       entering={splashKeyframe.duration(DURATION).withCallback((finished) => {
         'worklet';
         if (finished) {
@@ -48,14 +68,7 @@ export function AnimatedSplashOverlay() {
       {image}
     </Animated.View>
   ) : (
-    <View
-      onLayout={() => {
-        SplashScreen.hideAsync().finally(() => {
-          setAnimate(true);
-        });
-      }}
-      style={styles.splashOverlay}
-    >
+    <View pointerEvents="none" style={styles.splashOverlay}>
       {image}
     </View>
   );
